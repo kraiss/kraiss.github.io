@@ -7,7 +7,7 @@ tags: Java Optional
 
 Yes, exactly! If you are using `Optional.isPresent()`, you are using Optional wrong. Shame on you! ...
 
-Ok I get carried away a bit. But if you see this call, you can improve it. As instance:
+Ok I get carried away a bit. But if you see this call, you can improve it, period. As instance:
 
 ```java
     public Optional<Data> myAwesomeOptionalMethod() {
