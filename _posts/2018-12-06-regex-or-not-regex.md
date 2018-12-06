@@ -108,8 +108,11 @@ private boolean matches(
             final String partId,
             final Collection<String> prefixes,
             final Collection<String> suffixes) {
-        return prefixes.stream().anyMatch(prefix -> partId.startsWith(prefix) && (partId.length() == prefix.length() || partId.charAt(prefix.length()) == '#') &&
-                (suffixes.isEmpty() || suffixes.stream().anyMatch(partId::endsWith));
+	boolean start = prefixes.stream().anyMatch(
+	    prefix -> partId.startsWith(prefix) && 
+	    (partId.length() == prefix.length() || partId.charAt(prefix.length()) == '#')
+        );
+        return start && (suffixes.isEmpty() || suffixes.stream().anyMatch(partId::endsWith));
     }
 ```
 
