@@ -84,8 +84,8 @@ private boolean matches(
             final String partId,
             final Collection<String> prefixes,
             final Collection<String> suffixes) {
-        return prefixes.stream().anyMatch(prefix -> partId.equals(prefix) || partId.startsWith(prefix + "#")) &&
-                (suffixes.isEmpty() || suffixes.stream().anyMatch(partId::endsWith));
+	boolean start = prefixes.stream().anyMatch(prefix -> partId.equals(prefix) || partId.startsWith(prefix + "#"))
+        return start && (suffixes.isEmpty() || suffixes.stream().anyMatch(partId::endsWith));
     }
 ```
 
