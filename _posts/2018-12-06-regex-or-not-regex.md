@@ -93,13 +93,13 @@ Ok, it's better. We removed the worst things of this piece of code. At this poin
 
 But it's not finished we can do a bit better.
 
-#### Third, split the condition
+#### Final pass
 
-What's the problem. Actually there is two
- * If 'partId' is not equal to prefix we loop over the string two times. One for the `String.equals`, one for the `String.startsWith`.
+What's the problem ? Actually there are two:
+ * If 'partId' is not equal to the prefix we loop over the string two times. One for the `String.equals`, one for the `String.startsWith`.
  * We are concatening 'prefix' with a hash sign creating a temporary String. This costs a bit of process and memory we can avoid. 
 
-So in both we want to see if the string starts with the prefix, then two cases, the string ends here or is followed by a hash sign
+In the two conditions, we start by checking if the string starts with the prefix, then 1) the string ends here or 2) is followed by a hash sign
 
 Let's translate it to code.
 
@@ -117,5 +117,3 @@ private boolean matches(
 ```
 
 Now we come down to around 250ms, congrats to us! :p
-
-This is not really nice to read/understand so we need to refactor it a bit, add comments maybe, but it's the easy part (is it? :p)
