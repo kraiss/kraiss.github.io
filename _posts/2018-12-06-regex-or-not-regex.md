@@ -116,6 +116,6 @@ private boolean matches(
     }
 ```
 
-Now we come down to around 250ms, congrats to us :p
+Now we come down to around 250ms, congrats to us! :p
 
-This is not really nice to read/understand so we need to refactor it but it's the easy part (it is? :p)
+This is not really nice to read/understand so we need to refactor it but it's the easy part (is it? :p)
