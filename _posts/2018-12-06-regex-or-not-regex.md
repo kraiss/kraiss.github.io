@@ -7,74 +7,112 @@ tags: Java regex Pattern
 
 ## Regex should be your last resort
 
-### Show
+### Regex can go very very bad 
+
+Ok, so before we go in the today example. Let's agree that you should not use regex when possible.
+
+If you are not convince yet, check this. Do you think this take long to execute ?
 
 ```java
-public static void main(String[] args) {
-        String test = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa!";
-
-        long before = System.currentTimeMillis();
-        test.matches("a+");
-        System.out.println("'a+' took " + (System.currentTimeMillis() - before) + "ms");
-
-        before = System.currentTimeMillis();
-        test.matches("(a+)+");
-        System.out.println("'(a+)+' took " + (System.currentTimeMillis() - before) + "ms");
-    }
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa!".matches("a+");
 ```
 
-### Current state
+This takes millis to execute and now, what about this one ?
+
+```java
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa!".matches("(a+)+");
+```
+
+This takes seconds ! Regex is a powerful tool but it hides high complexity, a simpler solution is always better
+
+### Example from a real case
+
+Our case, a REST endpoint with really bad performance. Around 1 second for "simple operations". 
+
+The request go through around 2000 lines of code. When analysing it, I felt on this piece of code.
 
 ```java
 private boolean matches(
-            final MechanicalPart part,
+            final String partId,
             final Collection<String> prefixes,
             final Collection<String> suffixes) {
 			
         final List<Pattern> pattern =
                 prefixes.stream()
-                        .map(s -> Pattern.compile("^" + s + "(#.+)?$"))
+                        .map(s -> Pattern.compile(String.format("^%1$s(#.*)?$", s)))
                         .collect(Collectors.toList());
 
-        final String identity = part.getExtensionProperties().get(NFH_IDENTITY);
-        final String partId = identity == null ? part.getId() : identity;
         return patterns.stream().anyMatch(pattern -> pattern.matcher(partId).matches()) &&
                 (suffixes.isEmpty() || suffixes.stream().anyMatch(partId::endsWith));
     }
 ```
 
-### A bit better
+After wiping off the blood under my eyes and the vomit on my keyboard, I tried to improve this a bit.
+
+#### First, remove the String format
+
+This is a simple string concatenation and `String.format(..)` cost A LOT for nothing here
 
 ```java
-    private boolean matches(
+private boolean matches(
             final String partId,
             final Collection<String> prefixes,
             final Collection<String> suffixes) {
-        boolean matchPrefix = prefixes.stream()
-                .anyMatch(prefix -> partId.equals(prefix) || partId.startsWith(prefix + "#"));
+			
+        final List<Pattern> pattern =
+                prefixes.stream()
+                        .map(s -> Pattern.compile("^" + s+ "(#.*)?$"))
+                        .collect(Collectors.toList());
 
-        if (matchPrefix) {
-            return suffixes.isEmpty() || suffixes.stream().anyMatch(partId::endsWith);
-        }
-        return false;
+        return patterns.stream().anyMatch(pattern -> pattern.matcher(partId).matches()) &&
+                (suffixes.isEmpty() || suffixes.stream().anyMatch(partId::endsWith));
     }
 ```
 
-### Really better
+#### Second, remove the Patterns
+
+If we look closer at the regex/pattern/stream thing, we see that we create regex to check if
+ * `^abc$` the string is equal to `abc` 
+ * `^abc#.*$` the string starts by `abc` followed by a hash sign and maybe other chars.
+
+So the regex `^abc(#.*)?$` as instance, can be replaced by the condition `String.equals("abc") || String.startsWith("abc#")` because we don't care what comes after the hash sign.
+
+Let's refactor our example with this
 
 ```java
-    public static boolean matches(
+private boolean matches(
             final String partId,
             final Collection<String> prefixes,
             final Collection<String> suffixes) {
-
-        // Optimized predicate - partId should equals prefix OR partId starts by prefix following by '#' char
-        boolean matchPrefix = prefixes.stream()
-                .anyMatch(prefix -> partId.startsWith(prefix) && (partId.length() == prefix.length() || partId.charAt(prefix.length()) == '#'));
-
-        if (matchPrefix) {
-            return suffixes.isEmpty() || suffixes.stream().anyMatch(partId::endsWith);
-        }
-        return false;
+        return prefixes.stream().anyMatch(prefix -> partId.equals(prefix) || partId.startsWith(prefix + "#")) &&
+                (suffixes.isEmpty() || suffixes.stream().anyMatch(partId::endsWith));
     }
 ```
+
+Ok, it's better. We removed the worst things of this piece of code. At this point the REST endpoint takes around 300ms. Yes, I'm not kidding, apart from all the other things this endpoint is doing, this piece of code was 2/3 of the endpoint processing.
+
+But it's not finished we can do a bit better.
+
+#### Third, split the condition
+
+What's the problem. Actually there is two
+ * If 'partId' is not equal to prefix we loop over the string two times. One for the `String.equals`, one for the `String.startsWith`.
+ * We are concatening 'prefix' with a hash sign creating a temporary String. This costs a bit of process and memory we can avoid. 
+
+So in both we want to see if the string starts with the prefix, then two cases, the string ends here or is followed by a hash sign
+
+Let's translate it to code.
+
+```java
+private boolean matches(
+            final String partId,
+            final Collection<String> prefixes,
+            final Collection<String> suffixes) {
+        return prefixes.stream().anyMatch(prefix -> partId.startsWith(prefix) && (partId.length() == prefix.length() || partId.charAt(prefix.length()) == '#') &&
+                (suffixes.isEmpty() || suffixes.stream().anyMatch(partId::endsWith));
+    }
+```
+
+Now we come down to around 250ms, congrats to us :p
+
+This is not really nice to read/understand so we need to refactor it but it's the easy part (it is? :p)
