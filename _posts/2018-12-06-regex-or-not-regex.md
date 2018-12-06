@@ -61,7 +61,7 @@ private boolean matches(
 			
         final List<Pattern> pattern =
                 prefixes.stream()
-                        .map(s -> Pattern.compile("^" + s+ "(#.*)?$"))
+                        .map(s -> Pattern.compile("^" + s + "(#.*)?$"))
                         .collect(Collectors.toList());
 
         return patterns.stream().anyMatch(pattern -> pattern.matcher(partId).matches()) &&
@@ -71,9 +71,9 @@ private boolean matches(
 
 #### Second, remove the Patterns
 
-If we look closer at the regex/pattern/stream thing, we see that we create regex to check if
- * `^abc$` the string is equal to `abc` 
- * `^abc#.*$` the string starts by `abc` followed by a hash sign and maybe other chars.
+Let's look closer at the regex/pattern/stream thing. If we unwrap the `?` in the regex in two cases with an example prefix `abc`, we create two regex
+ * `^abc$`  which check if the string is equal to `abc` 
+ * `^abc#.*$`  which check if the string starts by `abc` followed by a hash sign and maybe other chars.
 
 So the regex `^abc(#.*)?$` as instance, can be replaced by the condition `String.equals("abc") || String.startsWith("abc#")` because we don't care what comes after the hash sign.
 
